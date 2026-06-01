@@ -16,8 +16,7 @@ services:
   # ── Nginx: serve frontend + proxy API ────────────────────────────
   nginx:
     image: nginx:alpine
-    ports:
-      - "80:80"           # expose local port 80 (optional, để test local)
+    # Không expose port ra ngoài — cloudflared kết nối trực tiếp qua internal network
     volumes:
       - ./frontend:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
