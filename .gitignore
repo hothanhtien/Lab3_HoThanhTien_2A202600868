@@ -1,0 +1,7 @@
+backend/.env
+backend/__pycache__/
+backend/src/**/__pycache__/
+backend/logs/
+*.pyc
+.env
+.superpowers/

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Knowledge Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      height: 100vh; display: flex; flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: #1e293b; padding: 14px 24px;
+      border-bottom: 1px solid #334155;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 17px; font-weight: 600; color: #f1f5f9; }
+    header h1 span { color: #818cf8; }
+    .tagline { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    /* Mode toggle */
+    .mode-toggle { display: flex; gap: 8px; }
+    .mode-btn {
+      padding: 6px 18px; border-radius: 20px;
+      border: 1px solid #475569; background: transparent;
+      color: #94a3b8; cursor: pointer; font-size: 13px; transition: all 0.2s;
+    }
+    .mode-btn.active { background: #6366f1; border-color: #6366f1; color: white; }
+
+    /* Suggestion chips */
+    .suggestions {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 10px 20px; background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    .chip {
+      background: #0f172a; border: 1px solid #334155;
+      color: #94a3b8; padding: 5px 12px; border-radius: 14px;
+      font-size: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .chip:hover { border-color: #6366f1; color: #818cf8; }
+
+    /* Chat area */
+    #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+    .msg { max-width: 78%; display: flex; flex-direction: column; gap: 5px; }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.bot  { align-self: flex-start; align-items: flex-start; }
+
+    .bubble {
+      padding: 11px 15px; border-radius: 12px;
+      line-height: 1.6; font-size: 14px; white-space: pre-wrap;
+    }
+    .user .bubble { background: #6366f1; color: white; border-bottom-right-radius: 3px; }
+    .bot  .bubble { background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 3px; }
+
+    /* Metrics row */
+    .metrics { font-size: 11px; color: #475569; display: flex; gap: 10px; padding: 0 2px; flex-wrap: wrap; }
+
+    /* Source badges */
+    .source-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 500;
+    }
+    .badge-discord_tool { background: #5865f2; color: white; }
+    .badge-pdf_tool     { background: #ef4444; color: white; }
+    .badge-github_tool  { background: #24292f; color: white; border: 1px solid #444; }
+    .badge-lms_tool     { background: #f59e0b; color: #111; }
+    .badge-drive_tool   { background: #10b981; color: white; }
+
+    /* Trace panel */
+    .trace-toggle {
+      font-size: 12px; color: #6366f1; cursor: pointer;
+      background: none; border: none; text-decoration: underline; padding: 2px 0;
+    }
+    .trace-panel {
+      background: #0f172a; border: 1px solid #1e293b;
+      border-radius: 8px; padding: 12px; font-size: 12px;
+      display: none; max-width: 580px; margin-top: 4px;
+    }
+    .trace-panel.open { display: block; }
+    .trace-step { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #1e293b; }
+    .trace-step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .t-label  { font-weight: 600; color: #64748b; font-size: 11px; margin-bottom: 4px; }
+    .t-thought { color: #fbbf24; margin-bottom: 3px; }
+    .t-action  { color: #34d399; font-family: monospace; margin-bottom: 3px; }
+    .t-obs     { color: #60a5fa; white-space: pre-wrap; max-height: 120px; overflow-y: auto; }
+
+    /* Input */
+    .input-area {
+      padding: 14px 20px; background: #1e293b;
+      border-top: 1px solid #334155; display: flex; gap: 10px;
+    }
+    #inp {
+      flex: 1; background: #0f172a; border: 1px solid #334155;
+      color: #e2e8f0; padding: 11px 15px; border-radius: 8px;
+      font-size: 14px; outline: none;
+    }
+    #inp:focus { border-color: #6366f1; }
+    #send {
+      background: #6366f1; color: white; border: none;
+      padding: 11px 22px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 500; transition: background 0.2s;
+      white-space: nowrap;
+    }
+    #send:hover    { background: #4f46e5; }
+    #send:disabled { background: #334155; cursor: not-allowed; }
+
+    .typing-msg { color: #64748b; font-size: 13px; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🎓 Student <span>Knowledge Agent</span></h1>
+    <div class="tagline">Tìm thông tin môn học từ Discord · PDF · GitHub · LMS · Drive</div>
+  </div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-agent"   onclick="setMode('agent')">🤖 Agent</button>
+    <button class="mode-btn"        id="btn-chatbot" onclick="setMode('chatbot')">💬 Chatbot</button>
+  </div>
+</header>
+
+<div class="suggestions">
+  <span class="chip" onclick="ask(this)">⏰ Lab 3 nộp khi nào?</span>
+  <span class="chip" onclick="ask(this)">🐙 Repo starter lab 3 ở đâu?</span>
+  <span class="chip" onclick="ask(this)">📄 Slide buổi 3 ở đâu?</span>
+  <span class="chip" onclick="ask(this)">🎯 Cách tính điểm lab 3?</span>
+  <span class="chip" onclick="ask(this)">📢 TA vừa thông báo gì mới?</span>
+</div>
+
+<div id="chat"></div>
+
+<div class="input-area">
+  <input id="inp" type="text"
+    placeholder="Hỏi về deadline, tài liệu, repo, điểm số..."
+    onkeypress="if(event.key==='Enter') send()" />
+  <button id="send" onclick="send()">Gửi ➤</button>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let mode = 'agent';
+  let traceN = 0;
+
+  const ICONS = {
+    discord_tool: '🎮', pdf_tool: '📄',
+    github_tool: '🐙', lms_tool: '🎓', drive_tool: '📁'
+  };
+  const NAMES = {
+    discord_tool: 'Discord', pdf_tool: 'PDF',
+    github_tool: 'GitHub', lms_tool: 'LMS', drive_tool: 'Drive'
+  };
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btn-agent').classList.toggle('active', m === 'agent');
+    document.getElementById('btn-chatbot').classList.toggle('active', m === 'chatbot');
+  }
+
+  function ask(el) {
+    document.getElementById('inp').value = el.textContent.replace(/^[^\s]+\s/, '').trim();
+    send();
+  }
+
+  function appendMsg(html, cls) {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = 'msg ' + cls;
+    div.innerHTML = html;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+  }
+
+  function buildTrace(trace) {
+    if (!trace || !trace.length) return '';
+    const id = 'tr' + (++traceN);
+    const steps = trace.map(s => {
+      const src = s.source ? `<span class="badge badge-${s.source}">${ICONS[s.source]||'🔍'} ${NAMES[s.source]||s.source}</span>` : '';
+      return `<div class="trace-step">
+        <div class="t-label">Step ${s.step}</div>
+        <div class="t-thought">💭 ${s.thought || ''}</div>
+        ${s.action ? `<div class="t-action">⚡ ${s.action}</div>` : ''}
+        ${s.observation ? `${src ? '<div style="margin:3px 0">'+src+'</div>' : ''}<div class="t-obs">👁 ${s.observation}</div>` : ''}
+      </div>`;
+    }).join('');
+    return `<button class="trace-toggle" onclick="document.getElementById('${id}').classList.toggle('open')">
+              📋 Xem trace (${trace.length} bước)
+            </button>
+            <div id="${id}" class="trace-panel">${steps}</div>`;
+  }
+
+  async function send() {
+    const inp = document.getElementById('inp');
+    const msg = inp.value.trim();
+    if (!msg) return;
+    inp.value = '';
+
+    appendMsg(`<div class="bubble">${msg}</div>`, 'user');
+    const typingEl = appendMsg(`<div class="bubble typing-msg">⏳ Đang tìm kiếm thông tin...</div>`, 'bot');
+    document.getElementById('send').disabled = true;
+
+    try {
+      const res = await fetch(`${API}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, mode })
+      });
+      const data = await res.json();
+      typingEl.remove();
+
+      // Source badges from trace
+      const sources = [...new Set((data.trace||[]).filter(s=>s.source).map(s=>s.source))];
+      const badges = sources.map(s =>
+        `<span class="badge badge-${s}">${ICONS[s]||'🔍'} ${NAMES[s]||s}</span>`
+      ).join('');
+
+      const m = data.metrics || {};
+      const traceHTML = mode === 'agent' ? buildTrace(data.trace) : '';
+
+      appendMsg(`
+        ${badges ? `<div class="source-row">${badges}</div>` : ''}
+        <div class="bubble">${(data.answer||'').replace(/\n/g,'<br>')}</div>
+        <div class="metrics">
+          <span>⏱ ${m.latency_ms||0}ms</span>
+          <span>🔤 ${m.total_tokens||0} tokens</span>
+          <span>🔄 ${m.steps||1} bước</span>
+          <span style="color:${mode==='agent'?'#34d399':'#94a3b8'}">${mode==='agent'?'🤖 Agent':'💬 Chatbot'}</span>
+        </div>
+        ${traceHTML}
+      `, 'bot');
+
+    } catch(e) {
+      typingEl.remove();
+      appendMsg(`<div class="bubble" style="color:#f87171">❌ Lỗi kết nối: ${e.message}</div>`, 'bot');
+    }
+
+    document.getElementById('send').disabled = false;
+    document.getElementById('chat').scrollTop = 99999;
+  }
+</script>
+</body>
+</html>
