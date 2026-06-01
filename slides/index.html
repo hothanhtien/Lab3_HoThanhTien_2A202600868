@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Knowledge Agent — Lab 3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; overflow: hidden; height: 100vh; }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+  .slide { position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 60px; opacity: 0; transition: opacity 0.4s; }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* Nav */
+  .nav { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: rgba(30,41,59,0.9); padding: 10px 24px; border-radius: 30px; border: 1px solid #334155; }
+  .nav button { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 20px; padding: 4px 8px; transition: color 0.2s; }
+  .nav button:hover { color: #818cf8; }
+  #counter { font-size: 13px; color: #64748b; min-width: 60px; text-align: center; }
+  .dot-nav { display: flex; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #334155; cursor: pointer; transition: background 0.2s; }
+  .dot.active { background: #818cf8; }
+
+  /* Slide types */
+  .slide-title { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e293b 100%); }
+  .slide-problem { background: linear-gradient(135deg, #1a0a0a 0%, #0f172a 60%); }
+  .slide-pain { background: linear-gradient(135deg, #1a0f0a 0%, #0f172a 60%); }
+  .slide-journey { background: linear-gradient(135deg, #0a0f1a 0%, #0f172a 60%); }
+  .slide-solution { background: linear-gradient(135deg, #0a1a0f 0%, #0f172a 60%); }
+  .slide-arch { background: linear-gradient(135deg, #0a0f1a 0%, #0f172a 60%); }
+  .slide-react { background: linear-gradient(135deg, #0f0a1a 0%, #0f172a 60%); }
+  .slide-tools { background: #0f172a; }
+  .slide-compare { background: #0f172a; }
+  .slide-demo { background: linear-gradient(135deg, #0a1a15 0%, #0f172a 60%); }
+  .slide-telemetry { background: #0f172a; }
+  .slide-conclusion { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 60%); }
+
+  /* Typography */
+  h1 { font-size: 52px; font-weight: 800; line-height: 1.1; }
+  h2 { font-size: 36px; font-weight: 700; margin-bottom: 32px; }
+  h3 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .subtitle { font-size: 22px; color: #94a3b8; margin-top: 12px; }
+  .accent { color: #818cf8; }
+  .green { color: #34d399; }
+  .yellow { color: #fbbf24; }
+  .red { color: #f87171; }
+  .blue { color: #60a5fa; }
+
+  .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .tag-purple { background: rgba(129,140,248,0.15); color: #818cf8; border: 1px solid rgba(129,140,248,0.3); }
+  .tag-green  { background: rgba(52,211,153,0.15);  color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+
+  /* Content layouts */
+  .content { width: 100%; max-width: 1000px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* Cards */
+  .card { background: rgba(30,41,59,0.8); border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+  .card-red    { border-left: 3px solid #f87171; }
+  .card-green  { border-left: 3px solid #34d399; }
+  .card-purple { border-left: 3px solid #818cf8; }
+  .card-yellow { border-left: 3px solid #fbbf24; }
+  .card-blue   { border-left: 3px solid #60a5fa; }
+
+  /* Pain points grid */
+  .pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 1000px; }
+  .pain-card { background: rgba(30,41,59,0.8); border: 1px solid #334155; border-radius: 10px; padding: 16px; border-left: 3px solid #f87171; }
+  .pain-title { font-weight: 700; font-size: 15px; color: #f87171; margin-bottom: 6px; }
+  .pain-body { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+  .pain-risk { font-size: 12px; color: #fbbf24; margin-top: 6px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: rgba(99,102,241,0.2); color: #818cf8; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(30,41,59,0.5); }
+
+  /* Trace box */
+  .trace { background: #0a0f1a; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; font-family: monospace; font-size: 13px; line-height: 2; width: 100%; }
+  .t-user  { color: #94a3b8; }
+  .t-think { color: #fbbf24; }
+  .t-act   { color: #34d399; }
+  .t-obs   { color: #60a5fa; }
+  .t-final { color: #f472b6; font-weight: 600; }
+
+  /* Journey */
+  .journey { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .jstep { background: rgba(30,41,59,0.8); border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; font-size: 13px; text-align: center; }
+  .jarrow { color: #475569; font-size: 18px; }
+  .jbad { border-color: #f87171; color: #f87171; }
+  .jgood { border-color: #34d399; color: #34d399; }
+
+  /* Source badges */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 500; }
+  .b-discord { background: #5865f2; }
+  .b-pdf     { background: #ef4444; }
+  .b-github  { background: #24292f; border: 1px solid #555; }
+  .b-lms     { background: #f59e0b; color: #111; }
+  .b-drive   { background: #10b981; }
+
+  /* Metric chips */
+  .metrics-row { display: flex; gap: 16px; margin-top: 16px; }
+  .metric { background: rgba(30,41,59,0.8); border: 1px solid #334155; border-radius: 8px; padding: 12px 20px; text-align: center; }
+  .metric-val { font-size: 24px; font-weight: 700; color: #818cf8; }
+  .metric-lbl { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  /* Bullets */
+  ul { list-style: none; padding: 0; }
+  ul li { padding: 6px 0; font-size: 16px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 10px; }
+  ul li::before { content: '▸'; color: #818cf8; flex-shrink: 0; margin-top: 1px; }
+
+  /* Title slide specifics */
+  .title-wrap { text-align: center; }
+  .title-wrap .authors { margin-top: 24px; font-size: 16px; color: #64748b; }
+  .platforms { display: flex; gap: 16px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .plat { background: rgba(30,41,59,0.8); border: 1px solid #334155; border-radius: 10px; padding: 10px 18px; font-size: 14px; }
+
+  /* Keyboard hint */
+  .hint { position: fixed; top: 20px; right: 24px; font-size: 12px; color: #334155; }
+</style>
+</head>
+<body>
+
+<div class="hint">← → or click arrows</div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide slide-title active" id="s1">
+    <div class="title-wrap">
+      <div style="margin-bottom:16px">
+        <span class="tag tag-purple">Lab 3 · Agentic AI Bootcamp</span>
+      </div>
+      <h1><span class="accent">Student</span><br>Knowledge Agent</h1>
+      <p class="subtitle">Chatbot vs ReAct Agent — Day 3</p>
+      <div class="platforms">
+        <span class="plat">🎮 Discord</span>
+        <span class="plat">📄 PDF</span>
+        <span class="plat">🐙 GitHub</span>
+        <span class="plat">🎓 LMS</span>
+        <span class="plat">📁 Google Drive</span>
+        <span class="plat" style="color:#818cf8;border-color:#818cf8">🤖 1 Agent</span>
+      </div>
+      <div class="authors">Hồ Thanh Tiên · 01/06/2026</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Problem -->
+  <div class="slide slide-problem" id="s2">
+    <div class="content">
+      <h2>😩 Vấn đề <span class="red">thực tế</span></h2>
+      <div class="card card-red" style="margin-bottom:24px;padding:24px">
+        <h3 style="font-size:20px;color:#f87171;margin-bottom:12px">
+          📚 Tài liệu môn học nằm rải rác khắp nơi
+        </h3>
+        <p style="font-size:16px;color:#cbd5e1;line-height:1.8">
+          Mỗi loại thông tin lại nằm ở một nền tảng khác nhau — sinh viên phải mở 5 tab,
+          tìm kiếm thủ công, và vẫn có thể đọc nhầm thông tin cũ hoặc bỏ lỡ thông báo quan trọng.
+        </p>
+      </div>
+      <div class="three-col">
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:8px">🎮</div>
+          <div style="font-weight:600;margin-bottom:4px">Discord</div>
+          <div style="font-size:13px;color:#64748b">Thông báo từ TA,<br>Q&A, update mới</div>
+        </div>
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:8px">📄</div>
+          <div style="font-weight:600;margin-bottom:4px">PDF / Slides</div>
+          <div style="font-size:13px;color:#64748b">Tài liệu bài giảng,<br>hướng dẫn lab</div>
+        </div>
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:8px">🐙</div>
+          <div style="font-weight:600;margin-bottom:4px">GitHub</div>
+          <div style="font-size:13px;color:#64748b">Starter code,<br>branch submit</div>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:8px">🎓</div>
+          <div style="font-weight:600;margin-bottom:4px">LMS</div>
+          <div style="font-size:13px;color:#64748b">Deadline, rubric,<br>điểm số</div>
+        </div>
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:8px">📁</div>
+          <div style="font-weight:600;margin-bottom:4px">Google Drive</div>
+          <div style="font-size:13px;color:#64748b">File, folder, video,<br>tài liệu khóa học</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Pain Points -->
+  <div class="slide slide-pain" id="s3">
+    <div class="content" style="max-width:1000px">
+      <h2>🔴 Pain Points <span class="red">của sinh viên</span></h2>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <div class="pain-title">⏰ "Deadline hôm nay là mấy giờ?"</div>
+          <div class="pain-body">Phải check LMS + Discord + hỏi bạn bè mới biết deadline chính xác. Có khi deadline đã thay đổi mà không hay.</div>
+          <div class="pain-risk">⚠️ Rủi ro: nộp trễ vì thông tin cũ</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-title">📄 "Slide phiên bản mới nhất ở đâu?"</div>
+          <div class="pain-body">Drive có nhiều folder, PDF cũ lẫn mới. Không biết file nào là bản cuối cùng.</div>
+          <div class="pain-risk">⚠️ Rủi ro: học nhầm tài liệu cũ, làm sai yêu cầu</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-title">🐙 "Fork repo nào? Submit branch nào?"</div>
+          <div class="pain-body">GitHub có nhiều repo, không biết đâu là starter code chính thức của lab này.</div>
+          <div class="pain-risk">⚠️ Rủi ro: fork nhầm repo, submit sai branch</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-title">📢 "TA vừa thông báo gì mới không?"</div>
+          <div class="pain-body">Discord có hàng trăm message mỗi ngày. Thông báo quan trọng bị trôi giữa chat.</div>
+          <div class="pain-risk">⚠️ Rủi ro: bỏ lỡ update quan trọng từ instructor</div>
+        </div>
+        <div class="pain-card" style="grid-column: span 2">
+          <div class="pain-title">🎯 "Tôi cần làm gì để đạt điểm cao?"</div>
+          <div class="pain-body">Rubric nằm trong PDF + LMS + SCORING.md trên GitHub. Phải đọc nhiều chỗ để tổng hợp.</div>
+          <div class="pain-risk">⚠️ Rủi ro: nộp thiếu phần quan trọng, mất điểm không đáng</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;text-align:center;padding:14px;background:rgba(248,113,113,0.1);border-radius:8px;border:1px solid rgba(248,113,113,0.2)">
+        <span style="color:#f87171;font-weight:600">🕐 Kết quả: Mất 15–30 phút/ngày chỉ để TÌM THÔNG TIN thay vì tập trung CODE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: User Journey -->
+  <div class="slide slide-journey" id="s4">
+    <div class="content">
+      <h2>😰 Hành trình sinh viên <span class="red">trước khi có Agent</span></h2>
+      <div style="margin-bottom:32px">
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px;text-align:center">Ví dụ: "Lab 3 nộp khi nào và repo ở đâu?"</div>
+        <div class="journey">
+          <div class="jstep jbad">Cần thông tin</div>
+          <div class="jarrow">→</div>
+          <div class="jstep">Mở Discord</div>
+          <div class="jarrow">→</div>
+          <div class="jstep jbad">Không tìm thấy</div>
+          <div class="jarrow">→</div>
+          <div class="jstep">Mở LMS</div>
+          <div class="jarrow">→</div>
+          <div class="jstep jbad">Deadline không rõ</div>
+          <div class="jarrow">→</div>
+          <div class="jstep">Mở GitHub</div>
+          <div class="jarrow">→</div>
+          <div class="jstep jbad">Nhiều repo, nhầm</div>
+          <div class="jarrow">→</div>
+          <div class="jstep">Hỏi TA</div>
+          <div class="jarrow">→</div>
+          <div class="jstep jbad">Chờ trả lời...</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card card-red" style="text-align:center;padding:24px">
+          <div style="font-size:40px;margin-bottom:8px">😩</div>
+          <div style="font-size:28px;font-weight:800;color:#f87171">~20 phút</div>
+          <div style="color:#94a3b8;margin-top:4px">5+ tabs, hỏi TA, chờ reply</div>
+        </div>
+        <div class="card card-green" style="text-align:center;padding:24px">
+          <div style="font-size:40px;margin-bottom:8px">🤖</div>
+          <div style="font-size:28px;font-weight:800;color:#34d399">~10 giây</div>
+          <div style="color:#94a3b8;margin-top:4px">1 câu hỏi → Agent trả lời ngay</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Solution -->
+  <div class="slide slide-solution" id="s5">
+    <div class="content">
+      <h2>✅ Giải pháp: <span class="green">1 Agent thống nhất</span></h2>
+      <div class="card card-green" style="padding:24px;margin-bottom:28px;text-align:center">
+        <p style="font-size:18px;line-height:1.8;color:#cbd5e1">
+          Sinh viên chỉ cần <strong style="color:#34d399">hỏi 1 câu</strong> — Agent tự quyết định
+          tìm ở nguồn nào, tổng hợp thông tin, và trả lời với <strong style="color:#34d399">nguồn gốc rõ ràng</strong>
+        </p>
+      </div>
+      <div class="three-col">
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:32px;margin-bottom:10px">🧠</div>
+          <h3>Tự suy luận</h3>
+          <p style="font-size:13px;color:#64748b;margin-top:6px">Agent tự quyết định cần tìm gì ở đâu — không cần hướng dẫn</p>
+        </div>
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:32px;margin-bottom:10px">🔍</div>
+          <h3>Tìm đúng nguồn</h3>
+          <p style="font-size:13px;color:#64748b;margin-top:6px">Mỗi query được route đến đúng tool: LMS, Discord, GitHub...</p>
+        </div>
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:32px;margin-bottom:10px">📋</div>
+          <h3>Trích nguồn rõ ràng</h3>
+          <p style="font-size:13px;color:#64748b;margin-top:6px">Mỗi câu trả lời có badge nguồn: [Discord] [LMS] [GitHub]</p>
+        </div>
+      </div>
+      <div style="margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <span class="badge b-discord">🎮 Discord</span>
+        <span class="badge b-pdf">📄 PDF</span>
+        <span class="badge b-github">🐙 GitHub</span>
+        <span class="badge b-lms">🎓 LMS</span>
+        <span class="badge b-drive">📁 Drive</span>
+        <span style="color:#64748b;align-self:center;font-size:20px">→</span>
+        <span class="badge" style="background:#6366f1">🤖 1 Agent</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Architecture -->
+  <div class="slide slide-arch" id="s6">
+    <div class="content">
+      <h2>🏗️ System <span class="accent">Architecture</span></h2>
+      <div class="two-col" style="align-items:start">
+        <div>
+          <div style="background:#0a0f1a;border-radius:10px;padding:20px;font-family:monospace;font-size:13px;line-height:2;border:1px solid #1e293b">
+            <div style="color:#64748b">🌐 tien-ops.khoav4.com</div>
+            <div style="padding-left:16px;color:#60a5fa">↕ Cloudflare Tunnel</div>
+            <div style="padding-left:32px;color:#34d399">nginx (reverse proxy)</div>
+            <div style="padding-left:48px;color:#94a3b8">├── / → frontend HTML</div>
+            <div style="padding-left:48px;color:#94a3b8">└── /chat → backend</div>
+            <div style="padding-left:64px;color:#a78bfa">FastAPI :8000</div>
+            <div style="padding-left:80px;color:#fbbf24">ReActAgent</div>
+            <div style="padding-left:96px;color:#94a3b8;font-size:11px">discord · pdf · github · lms · drive</div>
+          </div>
+        </div>
+        <div>
+          <div class="card card-purple" style="margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:8px;color:#818cf8">🛠️ Tech Stack</div>
+            <ul style="font-size:13px">
+              <li>Python 3.11 + FastAPI</li>
+              <li>OpenAI GPT-4o-mini</li>
+              <li>Docker Compose</li>
+              <li>nginx + Cloudflare Tunnel</li>
+            </ul>
+          </div>
+          <div class="card card-blue">
+            <div style="font-weight:600;margin-bottom:8px;color:#60a5fa">🌐 Live URL</div>
+            <div style="font-family:monospace;font-size:14px;color:#34d399">tien-ops.khoav4.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: ReAct Loop -->
+  <div class="slide slide-react" id="s7">
+    <div class="content">
+      <h2>🔄 ReAct Loop — <span class="accent">Kỹ thuật cốt lõi</span></h2>
+      <div style="text-align:center;margin-bottom:20px;display:flex;gap:8px;justify-content:center;align-items:center">
+        <span class="tag tag-purple">💭 Thought</span>
+        <span style="color:#475569">→</span>
+        <span class="tag" style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3)">⚡ Action</span>
+        <span style="color:#475569">→</span>
+        <span class="tag" style="background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.3)">👁 Observation</span>
+        <span style="color:#475569">→ ... →</span>
+        <span class="tag" style="background:rgba(244,114,182,0.15);color:#f472b6;border:1px solid rgba(244,114,182,0.3)">✅ Final Answer</span>
+      </div>
+      <div class="trace">
+        <div class="t-user">👤 Student: "Lab 3 nộp khi nào và repo starter ở đâu?"</div>
+        <div class="t-think">💭 Thought: Câu hỏi có 2 phần — deadline (LMS) và repo (GitHub). Tìm LMS trước.</div>
+        <div class="t-act">⚡ Action: lms_tool("deadline lab 3")</div>
+        <div class="t-obs">👁 Observation: [LMS] Lab 3 deadline: 01/06/2026 23:59. Submit: lms.aivn.vn/lab3</div>
+        <div class="t-think">💭 Thought: Đã có deadline. Tiếp theo tìm repo trên GitHub.</div>
+        <div class="t-act">⚡ Action: github_tool("starter repo lab 3")</div>
+        <div class="t-obs">👁 Observation: [GitHub] Repo: github.com/aivn-course/lab3 | Branch: main | Fork để submit.</div>
+        <div class="t-think">💭 Thought: Đã đủ thông tin. Tổng hợp câu trả lời.</div>
+        <div class="t-final">✅ Final Answer: Lab 3 nộp trước 23:59 ngày 01/06. Repo starter tại github.com/aivn-course/lab3, fork về và submit link trên LMS.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Tools -->
+  <div class="slide slide-tools" id="s8">
+    <div class="content">
+      <h2>🛠️ 5 Knowledge <span class="accent">Tools</span></h2>
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Nguồn</th><th>Loại thông tin</th><th>Ví dụ query</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge b-discord" style="font-size:12px">🎮 discord_tool</span></td>
+            <td>Discord</td>
+            <td>Announcements, Q&A từ TA</td>
+            <td>"thông báo mới nhất"</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-pdf" style="font-size:12px">📄 pdf_tool</span></td>
+            <td>PDF</td>
+            <td>Slide, lab instructions, syllabus</td>
+            <td>"react loop là gì"</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-github" style="font-size:12px">🐙 github_tool</span></td>
+            <td>GitHub</td>
+            <td>Repo, branch, issues, code</td>
+            <td>"repo starter lab 3"</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-lms" style="font-size:12px">🎓 lms_tool</span></td>
+            <td>LMS</td>
+            <td>Deadline, rubric, điểm số</td>
+            <td>"deadline lab 3"</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-drive" style="font-size:12px">📁 drive_tool</span></td>
+            <td>Google Drive</td>
+            <td>File, folder, video demo</td>
+            <td>"slide buổi 3"</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:20px;padding:14px;background:rgba(129,140,248,0.08);border-radius:8px;border:1px solid rgba(129,140,248,0.2);font-size:14px;color:#94a3b8;text-align:center">
+        💡 Mỗi tool là 1 mock knowledge base (Python dict) — keyword search đơn giản, trả về kết quả có metadata nguồn
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Compare -->
+  <div class="slide slide-compare" id="s9">
+    <div class="content">
+      <h2>⚔️ Chatbot <span class="red">vs</span> ReAct Agent</h2>
+      <table style="margin-bottom:20px">
+        <thead>
+          <tr><th>Câu hỏi</th><th>💬 Chatbot</th><th>🤖 ReAct Agent</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Lab 3 nộp khi nào?"</td>
+            <td class="red">❌ Hallucinate ngày sai</td>
+            <td class="green">✅ 01/06 23:59 (từ LMS)</td>
+          </tr>
+          <tr>
+            <td>"Repo starter ở đâu?"</td>
+            <td class="red">❌ Không biết URL</td>
+            <td class="green">✅ github.com/aivn-course/lab3</td>
+          </tr>
+          <tr>
+            <td>"Slide buổi 3 ở đâu?"</td>
+            <td class="red">❌ Trả lời chung chung</td>
+            <td class="green">✅ Link Drive cụ thể</td>
+          </tr>
+          <tr>
+            <td>Multi-source query</td>
+            <td class="red">❌ Chỉ trả lời 1 phần</td>
+            <td class="green">✅ Tổng hợp nhiều nguồn</td>
+          </tr>
+          <tr>
+            <td>Latency</td>
+            <td class="green">✅ ~500ms</td>
+            <td class="yellow">⚡ ~2-4s (multi-step)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="two-col">
+        <div class="card card-red" style="text-align:center;padding:16px">
+          <div style="font-size:28px;margin-bottom:6px">💬 Chatbot</div>
+          <div style="font-size:13px;color:#94a3b8">Nhanh · Đơn giản · Không có tools<br><span class="red">Hallucinate thông tin cụ thể</span></div>
+        </div>
+        <div class="card card-green" style="text-align:center;padding:16px">
+          <div style="font-size:28px;margin-bottom:6px">🤖 ReAct Agent</div>
+          <div style="font-size:13px;color:#94a3b8">Chậm hơn · Phức tạp hơn<br><span class="green">Chính xác · Có nguồn gốc</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Demo -->
+  <div class="slide slide-demo" id="s10">
+    <div class="content">
+      <h2>🎬 Demo & <span class="green">Live System</span></h2>
+      <div class="two-col" style="align-items:start">
+        <div>
+          <div class="card" style="padding:20px;margin-bottom:16px">
+            <div style="font-weight:600;margin-bottom:12px;color:#818cf8">🖥️ UI Features</div>
+            <ul>
+              <li>Chat bubble với source badges</li>
+              <li>Trace accordion — xem từng bước Thought/Action</li>
+              <li>Mode toggle: Agent ↔ Chatbot</li>
+              <li>Metrics: latency · tokens · bước</li>
+              <li>Suggestion chips gợi ý câu hỏi</li>
+            </ul>
+          </div>
+          <div class="card card-green" style="padding:16px;text-align:center">
+            <div style="font-size:13px;color:#64748b;margin-bottom:6px">🌐 Live URL</div>
+            <div style="font-family:monospace;font-size:16px;color:#34d399;font-weight:700">tien-ops.khoav4.com</div>
+          </div>
+        </div>
+        <div>
+          <div class="metrics-row" style="flex-direction:column;gap:12px;margin-top:0">
+            <div class="metric" style="text-align:left;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;color:#64748b">⏱ Avg Latency (Agent)</span>
+              <span class="metric-val" style="font-size:18px">~2.5s</span>
+            </div>
+            <div class="metric" style="text-align:left;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;color:#64748b">🔤 Avg Tokens / query</span>
+              <span class="metric-val" style="font-size:18px">~400</span>
+            </div>
+            <div class="metric" style="text-align:left;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;color:#64748b">🔄 Avg Steps (ReAct)</span>
+              <span class="metric-val" style="font-size:18px">2–3</span>
+            </div>
+            <div class="metric" style="text-align:left;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;color:#64748b">✅ Success Rate</span>
+              <span class="metric-val" style="font-size:18px;color:#34d399">~90%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Telemetry -->
+  <div class="slide slide-telemetry" id="s11">
+    <div class="content">
+      <h2>📊 Telemetry & <span class="accent">Monitoring</span></h2>
+      <div class="two-col" style="align-items:start">
+        <div>
+          <div class="card card-purple" style="margin-bottom:16px">
+            <div style="font-weight:600;margin-bottom:10px;color:#818cf8">📋 Events được log</div>
+            <table style="font-size:13px">
+              <tr><td style="color:#fbbf24">AGENT_START</td><td style="color:#64748b">Bắt đầu xử lý câu hỏi</td></tr>
+              <tr><td style="color:#34d399">TOOL_CALL</td><td style="color:#64748b">Gọi tool + args + obs length</td></tr>
+              <tr><td style="color:#f87171">PARSE_ERROR</td><td style="color:#64748b">LLM output sai format</td></tr>
+              <tr><td style="color:#f87171">TOOL_NOT_FOUND</td><td style="color:#64748b">Agent hallucinate tool name</td></tr>
+              <tr><td style="color:#60a5fa">LLM_METRIC</td><td style="color:#64748b">Latency, tokens, cost</td></tr>
+              <tr><td style="color:#a78bfa">AGENT_END</td><td style="color:#64748b">Kết thúc + status</td></tr>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div style="font-weight:600;margin-bottom:10px;color:#60a5fa">💰 Metrics per request</div>
+            <ul style="font-size:13px">
+              <li>latency_ms — thời gian phản hồi</li>
+              <li>total_tokens — prompt + completion</li>
+              <li>cost_usd — chi phí thực theo model</li>
+              <li>steps — số vòng Thought/Action</li>
+            </ul>
+          </div>
+          <div class="card card-yellow">
+            <div style="font-weight:600;margin-bottom:8px;color:#fbbf24">💡 Dùng cho Report</div>
+            <p style="font-size:13px;color:#94a3b8">Log failure traces → phân tích RCA → cải thiện Agent v1 → v2 = <span class="yellow">+9pt Trace Quality</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Conclusion -->
+  <div class="slide slide-conclusion" id="s12">
+    <div class="content" style="text-align:center">
+      <h2>🎯 Kết luận & <span class="accent">Bài học</span></h2>
+      <div class="three-col" style="margin-bottom:24px">
+        <div class="card card-green" style="padding:20px">
+          <div style="font-size:28px;margin-bottom:8px">🤖</div>
+          <h3 style="font-size:15px;margin-bottom:8px">ReAct > Chatbot</h3>
+          <p style="font-size:13px;color:#64748b">Vượt trội hoàn toàn cho multi-step queries cần dữ liệu thực</p>
+        </div>
+        <div class="card card-purple" style="padding:20px">
+          <div style="font-size:28px;margin-bottom:8px">🛠️</div>
+          <h3 style="font-size:15px;margin-bottom:8px">Tool Design là chìa khóa</h3>
+          <p style="font-size:13px;color:#64748b">1 nguồn = 1 tool = 1 trách nhiệm rõ ràng</p>
+        </div>
+        <div class="card card-yellow" style="padding:20px">
+          <div style="font-size:28px;margin-bottom:8px">📊</div>
+          <h3 style="font-size:15px;margin-bottom:8px">Telemetry giúp improve</h3>
+          <p style="font-size:13px;color:#64748b">Log failure → debug → Agent v2 tốt hơn</p>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;margin-bottom:20px">
+        <div style="font-weight:600;color:#60a5fa;margin-bottom:10px">🚀 Hướng phát triển</div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:14px;color:#94a3b8">
+          <span>📚 RAG thật sự (vector DB)</span>
+          <span>•</span>
+          <span>🔍 Semantic search</span>
+          <span>•</span>
+          <span>🤝 Multi-agent system</span>
+          <span>•</span>
+          <span>🛡️ Guardrails</span>
+        </div>
+      </div>
+      <div style="padding:14px;background:rgba(129,140,248,0.1);border-radius:8px;border:1px solid rgba(129,140,248,0.2)">
+        <span style="color:#818cf8;font-style:italic;font-size:16px">"Fail Early, Learn Fast — log failure cũng là điểm số" 🎓</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end deck -->
+
+<!-- Navigation -->
+<div class="nav">
+  <button onclick="go(-1)">◀</button>
+  <span id="counter">1 / 12</span>
+  <button onclick="go(1)">▶</button>
+  <div class="dot-nav" id="dots"></div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let cur = 0;
+
+  // Build dots
+  const dotNav = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotNav.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[cur].classList.remove('active');
+    dotNav.children[cur].classList.remove('active');
+    cur = (n + total) % total;
+    slides[cur].classList.add('active');
+    dotNav.children[cur].classList.add('active');
+    document.getElementById('counter').textContent = `${cur+1} / ${total}`;
+  }
+
+  function go(dir) { goTo(cur + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+</script>
+</body>
+</html>
