@@ -1,6 +1,6 @@
-# 🎓 Student Knowledge Agent — Lab 3
+# Lab 3
 
-> **Agentic AI Bootcamp · Day 3** — Chatbot vs ReAct Agent  
+> **Day 3** — Chatbot vs ReAct Agent
 > Tác giả: Hồ Thanh Tiên · 01/06/2026
 
 AI Agent giúp sinh viên tìm thông tin môn học từ **1 chỗ duy nhất** thay vì phải tìm thủ công qua Discord, PDF, GitHub, LMS và Google Drive.
@@ -31,6 +31,7 @@ Internet → Cloudflare Tunnel → nginx → FastAPI → ReActAgent → 5 Tools
 ```
 
 **Tech Stack:**
+
 - **Backend:** Python 3.11, FastAPI, OpenAI GPT-4o-mini
 - **Frontend:** HTML/CSS/JS thuần
 - **Infra:** Docker Compose, nginx, Cloudflare Tunnel
@@ -39,11 +40,11 @@ Internet → Cloudflare Tunnel → nginx → FastAPI → ReActAgent → 5 Tools
 
 ## ✅ Yêu cầu
 
-| Tool | Version |
-|------|---------|
-| Docker | ≥ 24.x |
-| Docker Compose | ≥ 2.x |
-| OpenAI API Key | — |
+| Tool           | Version |
+| -------------- | ------- |
+| Docker         | ≥ 24.x |
+| Docker Compose | ≥ 2.x  |
+| OpenAI API Key | —      |
 
 ---
 
@@ -79,11 +80,11 @@ docker compose up --build
 
 ### 4. Mở browser
 
-| Service | URL |
-|---------|-----|
-| 🌐 Chat UI | http://localhost |
+| Service       | URL                          |
+| ------------- | ---------------------------- |
+| 🌐 Chat UI    | http://localhost             |
 | 🔌 API Health | http://localhost:8001/health |
-| 📄 API Docs | http://localhost:8001/docs |
+| 📄 API Docs   | http://localhost:8001/docs   |
 
 > **Lưu ý:** Nếu port 80 bị chiếm, nginx sẽ chạy internal only và cloudflared kết nối qua Docker network.
 
@@ -141,6 +142,7 @@ curl https://tien-ops.khoav4.com/health
 ```
 
 Expected response:
+
 ```json
 {
   "status": "ok",
@@ -206,6 +208,7 @@ Lab3_HoThanhTien_1_6/
 Gửi câu hỏi đến Agent hoặc Chatbot.
 
 **Request:**
+
 ```json
 {
   "message": "Lab 3 nộp khi nào?",
@@ -213,12 +216,13 @@ Gửi câu hỏi đến Agent hoặc Chatbot.
 }
 ```
 
-| Field | Type | Values | Default |
-|-------|------|--------|---------|
-| `message` | string | Câu hỏi bất kỳ | — |
-| `mode` | string | `"agent"` hoặc `"chatbot"` | `"agent"` |
+| Field       | Type   | Values                          | Default     |
+| ----------- | ------ | ------------------------------- | ----------- |
+| `message` | string | Câu hỏi bất kỳ              | —          |
+| `mode`    | string | `"agent"` hoặc `"chatbot"` | `"agent"` |
 
 **Response:**
+
 ```json
 {
   "answer": "Lab 3 deadline là 01/06/2026 23:59...",
@@ -275,13 +279,13 @@ docker compose cp backend:/app/logs ./logs
 
 **Log events:**
 
-| Event | Ý nghĩa |
-|-------|---------|
+| Event           | Ý nghĩa                    |
+| --------------- | ---------------------------- |
 | `AGENT_START` | Bắt đầu xử lý câu hỏi |
-| `TOOL_CALL` | Gọi tool + kết quả |
-| `PARSE_ERROR` | LLM output sai format |
-| `LLM_METRIC` | Latency, tokens, cost |
-| `AGENT_END` | Kết thúc + status |
+| `TOOL_CALL`   | Gọi tool + kết quả        |
+| `PARSE_ERROR` | LLM output sai format        |
+| `LLM_METRIC`  | Latency, tokens, cost        |
+| `AGENT_END`   | Kết thúc + status          |
 
 ---
 
@@ -299,11 +303,11 @@ docker compose down -v
 
 ## 📝 Lab 3 Scoring
 
-| Rubric | Điểm | Trạng thái |
-|--------|------|-----------|
-| Chatbot Baseline | 2pt | ✅ `chatbot.py` |
-| Agent v1 Working | 7pt | ✅ ReAct + 5 tools |
-| Tool Design | 4pt | ✅ 5 tools có spec rõ |
-| Trace Quality | 9pt | ✅ JSON logs + UI trace |
-| Code Quality | 4pt | ✅ Modular, telemetry |
-| **Live Demo Bonus** | **+5pt** | ✅ tien-ops.khoav4.com |
+| Rubric                    | Điểm | Trạng thái            |
+| ------------------------- | ------ | ----------------------- |
+| Chatbot Baseline          |        | ✅`chatbot.py`        |
+| Agent v1 Working          |        | ✅ ReAct + 5 tools      |
+| Tool Design               |        | ✅ 5 tools có spec rõ |
+| Trace Quality             |        | ✅ JSON logs + UI trace |
+| Code Quality              |        | ✅ Modular, telemetry   |
+| **Live Demo Bonus** |        | ✅ tien-ops.khoav4.com  |
